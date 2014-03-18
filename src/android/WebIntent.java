@@ -131,7 +131,8 @@ public class WebIntent extends CordovaPlugin {
 
                 // Parse the arguments
                 JSONObject obj = args.getJSONObject(0);
-
+                String type = obj.has("type") ? obj.getString("type") : null;
+                Uri uri = obj.has("url") ? Uri.parse(obj.getString("url")) : null;
                 JSONObject extras = obj.has("extras") ? obj.getJSONObject("extras") : null;
                 Map<String, String> extrasMap = new HashMap<String, String>();
 
@@ -145,7 +146,7 @@ public class WebIntent extends CordovaPlugin {
                     }
                 }
 
-                sendBroadcast(obj.getString("action"), extrasMap);
+                sendBroadcast(obj.getString("action"), uri, type, extrasMap);
                 //return new PluginResult(PluginResult.Status.OK);
                 callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
                 return true;
@@ -199,9 +200,17 @@ public class WebIntent extends CordovaPlugin {
         ((CordovaActivity)this.cordova.getActivity()).startActivity(i);
     }
 
-    void sendBroadcast(String action, Map<String, String> extras) {
-        Intent intent = new Intent();
-        intent.setAction(action);
+    void sendBroadcast(String action, Uri uri, String type, Map<String, String> extras) {
+        Intent intent = (uri != null ? new Intent(action, uri) : new Intent(action));
+        
+        if (type != null && uri != null) {
+            intent.setDataAndType(uri, type); //Fix the crash problem with android 2.3.6
+        } else {
+            if (type != null) {
+                intent.setType(type);
+            }
+        }
+        
         for (String key : extras.keySet()) {
             String value = extras.get(key);
             intent.putExtra(key, value);
